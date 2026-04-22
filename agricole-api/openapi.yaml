@@ -1,75 +1,50 @@
 openapi: 3.0.3
 info:
-  title: API Fédération des Collectivités Agricoles Madagascar
-  description: API REST pour la gestion de la fédération nationale et des collectivités locales. Version mise à jour avec les conditions d'admission 2026 et les rapports fédéraux.
-  version: 1.3.0
-servers:
-  - url: https://api.federation-agricole.mg
-
-tags:
-  - name: Federation
-  - name: Collectivites
-  - name: Membres
-  - name: Cotisations
-  - name: Comptes
-  - name: Activites
-  - name: Statistiques
+  title: Agricultural Federation API
+  description: API pour la gestion des collectivités agricoles et de leurs membres - TD Final Prog3
+  version: 1.0.0
 
 paths:
-  /collectivites:
+  /members:
     post:
-      tags: [Collectivites]
-      summary: Demander l'ouverture d'une nouvelle collectivité
+      summary: Créer de nouveaux membres
+      operationId: createMembers
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CollectiviteCreation'
+              type: array
+              items:
+                $ref: '#/components/schemas/Member'
       responses:
         '201':
-          description: Demande enregistrée
-    get:
-      tags: [Collectivites]
-      summary: Liste des collectivités actives
-      responses:
-        '200':
-          description: Liste retournée
+          description: Membres créés avec succès
+        '400':
+          description: Conditions de parrainage ou de paiement non remplies
 
-  /collectivites/{id}/autorisation:
+  /collectivities:
+    post:
+      summary: Créer de nouvelles collectivités
+      operationId: createCollectivities
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/Collectivity'
+      responses:
+        '201':
+          description: Collectivités créées avec succès
+        '400':
+          description: Critères d'approbation ou nombre de membres insuffisants
+
+  /collectivities/{id}/identify:
     patch:
-      tags: [Collectivites]
-      summary: Accorder l'autorisation formelle d'ouverture
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Collectivité autorisée
-
-  /membres:
-    post:
-      tags: [Membres]
-      summary: Admission d'un nouveau membre (Conditions B-2)
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MembreAdmission'
-      responses:
-        '201':
-          description: Membre admis
-        '403':
-          description: Conditions de parrainage ou paiement non remplies
-
-  /membres/{id}/mutation:
-    put:
-      tags: [Membres]
-      summary: Changer de collectivité
+      summary: Identifier une collectivité (Fonctionnalité J)
+      description: Attribuer un nom et un numéro unique. Une fois défini, ces champs sont immuables.
       parameters:
         - name: id
           in: path
@@ -82,190 +57,76 @@ paths:
           application/json:
             schema:
               type: object
-              required: [nouvelleCollectiviteId]
+              required:
+                - name
+                - number
               properties:
-                nouvelleCollectiviteId:
+                name:
                   type: string
+                  example: "Coopérative d'Analamanga"
+                number:
+                  type: string
+                  example: "COOP-2026-001"
       responses:
         '200':
-          description: Mutation enregistrée
-
-  /cotisations:
-    post:
-      tags: [Cotisations]
-      summary: Enregistrer un encaissement
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PaiementGlobal'
-      responses:
-        '201':
-          description: Paiement enregistré
-
-  /comptes:
-    post:
-      tags: [Comptes]
-      summary: Ajouter un compte financier
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Compte'
-      responses:
-        '201':
-          description: Compte créé
-
-  /activites/{id}/presence:
-    post:
-      tags: [Activites]
-      summary: Enregistrer la présence d'un membre
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Presence'
-      responses:
-        '200':
-          description: Présence enregistrée
-
-  /federation/statistiques/assiduite-globale:
-    get:
-      tags: [Federation]
-      summary: Taux d'assiduité global de chaque collectivité
-      parameters:
-        - name: debut
-          in: query
-          required: true
-          schema: { type: string, format: date }
-        - name: fin
-          in: query
-          required: true
-          schema: { type: string, format: date }
-      responses:
-        '200':
-          description: Statistiques retournées
-
-  /federation/statistiques/cotisations-status:
-    get:
-      tags: [Federation]
-      summary: Pourcentage global de membres à jour par collectivité
-      parameters:
-        - name: debut
-          in: query
-          required: true
-          schema: { type: string, format: date }
-        - name: fin
-          in: query
-          required: true
-          schema: { type: string, format: date }
-      responses:
-        '200':
-          description: Rapport financier global retourné
-
-  /federation/statistiques/nouveaux-adherents:
-    get:
-      tags: [Federation]
-      summary: Nombre de nouveaux adhérents par collectivité
-      parameters:
-        - name: debut
-          in: query
-          required: true
-          schema: { type: string, format: date }
-        - name: fin
-          in: query
-          required: true
-          schema: { type: string, format: date }
-      responses:
-        '200':
-          description: Statistiques de croissance retournées
+          description: Collectivité identifiée avec succès
+        '400':
+          description: Nom/Numéro déjà utilisé ou modification interdite (immutabilité)
+        '404':
+          description: Collectivité introuvable
 
 components:
   schemas:
-    MembreAdmission:
+    Member:
       type: object
-      required: [nom, prenoms, dateNaissance, genre, adresse, metier, telephone, email, collectiviteCibleId, parrains, paiementInitial]
       properties:
-        nom: { type: string }
-        prenoms: { type: string }
-        dateNaissance: { type: string, format: date }
-        genre: { type: string, enum: [MASCULIN, FEMININ] }
-        adresse: { type: string }
-        metier: { type: string }
-        telephone: { type: string }
-        email: { type: string, format: email }
-        collectiviteCibleId: { type: string }
-        parrains:
+        id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        birthDate:
+          type: string
+          format: date
+        gender:
+          type: string
+          enum: [MALE, FEMALE]
+        registrationFeePaid:
+          type: boolean
+        membershipDuesPaid:
+          type: boolean
+        referees:
           type: array
-          minItems: 2
           items:
-            $ref: '#/components/schemas/Parrainage'
-        paiementInitial:
-          $ref: '#/components/schemas/PaiementInitial'
+            type: string
+          description: IDs des parrains
 
-    Parrainage:
+    Collectivity:
       type: object
-      required: [parrainId, relation]
       properties:
-        parrainId: { type: string }
-        relation: { type: string, example: "famille, amis ou collègues" }
-
-    PaiementInitial:
-      type: object
-      required: [montantAdhesion, montantCotisationAnnuelle, modePaiement]
-      properties:
-        montantAdhesion: { type: number, default: 50000 }
-        montantCotisationAnnuelle: { type: number }
-        modePaiement: { type: string, enum: [VIREMENT_BANCAIRE, MOBILE_MONEY] }
-
-    CollectiviteCreation:
-      type: object
-      required: [numero, nom, ville, specialite, membresFondateurs]
-      properties:
-        numero: { type: string }
-        nom: { type: string }
-        ville: { type: string }
-        specialite: { type: string }
-        membresFondateurs:
+        id:
+          type: string
+        location:
+          type: string
+        federationApproval:
+          type: boolean
+        members:
           type: array
-          minItems: 10
-          items: { type: string }
+          items:
+            type: string
+          description: IDs des membres (minimum 10)
+        structure:
+          $ref: '#/components/schemas/Structure'
 
-    PaiementGlobal:
+    Structure:
       type: object
-      required: [membreId, montant, date, mode, type]
       properties:
-        membreId: { type: string }
-        montant: { type: number }
-        date: { type: string, format: date }
-        mode: { type: string, enum: [ESPECE, VIREMENT_BANCAIRE, MOBILE_MONEY] }
-        type: { type: string, enum: [ADHESION, ANNUELLE, MENSUELLE, PONCTUELLE] }
-
-    Compte:
-      type: object
-      required: [type, titulaire]
-      properties:
-        type: { type: string, enum: [CAISSE, BANCAIRE, MOBILE_MONEY] }
-        titulaire: { type: string }
-        banqueNom: { type: string, enum: [BRED, MCB, BMOI, BOA, BGFI, AFG, ACCÈS BANQUE, BAOBAB, SIPEM] }
-        rib: { type: string, pattern: '^[0-9]{23}$' }
-        serviceMobile: { type: string, enum: [Orange Money, Mvola, Airtel Money] }
-        numeroTelephone: { type: string }
-
-    Presence:
-      type: object
-      required: [membreId, estPresent]
-      properties:
-        membreId: { type: string }
-        estPresent: { type: boolean }
-        motifAbsence: { type: string }
-        estExcuse: { type: boolean }
+        president:
+          type: string
+        vicePresident:
+          type: string
+        treasurer:
+          type: string
+        secretary:
+          type: string
