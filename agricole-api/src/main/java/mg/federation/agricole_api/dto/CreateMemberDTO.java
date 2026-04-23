@@ -3,8 +3,8 @@ package mg.federation.agricole_api.dto;
 import lombok.Data;
 import java.time.LocalDate;
 import java.util.List;
-import mg.federation.agricole_api.entity.Gender;
-import mg.federation.agricole_api.entity.MemberOccupation;
+import mg.federation.agricole_api.entity.enumeration.Enumerations.Gender;
+import mg.federation.agricole_api.entity.enumeration.Enumerations.MemberOccupation;
 
 @Data
 public class CreateMemberDTO {

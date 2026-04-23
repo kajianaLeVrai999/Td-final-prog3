@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.util.List;
+import mg.federation.agricole_api.entity.enumeration.Enumerations.Gender;
+import mg.federation.agricole_api.entity.enumeration.Enumerations.MemberOccupation;
 
 @Entity @Data @NoArgsConstructor @AllArgsConstructor
 public class Member {
