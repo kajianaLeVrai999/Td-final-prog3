@@ -24,7 +24,7 @@ public class MemberPayment {
     @JoinColumn(name = "financial_account_id")
     private FinancialAccount accountCredited;
 
-    // Optionnel : Si tu veux lier le paiement au membre dans la base
+    
     @ManyToOne
     @JoinColumn(name = "member_id")
     private Member member;

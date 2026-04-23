@@ -11,7 +11,7 @@ import mg.federation.agricole_api.entity.enumeration.Enumerations.MemberOccupati
 
 @Entity @Data @NoArgsConstructor @AllArgsConstructor
 public class Member {
-    @Id @GeneratedValue(strategy = GenerationType.UUID)
+    @Id 
     private String id;
     private String firstName;
     private String lastName;

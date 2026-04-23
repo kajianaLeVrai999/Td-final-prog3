@@ -8,7 +8,6 @@ import lombok.Data;
 @Data
 public class CollectivityStructure {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne

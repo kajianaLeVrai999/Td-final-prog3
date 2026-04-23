@@ -11,7 +11,7 @@ import mg.federation.agricole_api.entity.enumeration.Enumerations.MobileBankingS
 @Entity
 @DiscriminatorValue("MOBILE")
 @Data
-@EqualsAndHashCode(callSuper = true) // Important pour que Lombok gère l'héritage
+@EqualsAndHashCode(callSuper = true)
 public class MobileBankingAccount extends FinancialAccount {
     private String holderName;
     private String mobileNumber;

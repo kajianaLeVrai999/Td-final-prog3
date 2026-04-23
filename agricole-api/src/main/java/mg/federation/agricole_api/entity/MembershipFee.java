@@ -8,13 +8,13 @@ import  mg.federation.agricole_api.entity.enumeration.Enumerations.Frequency;
 import java.time.LocalDate;
 
 @Entity
-@Data // Génère automatiquement setEligibleFrom, getEligibleFrom, etc.
+@Data
 public class MembershipFee {
 
     @Id
     private String id;
 
-    // LE CHAMP MANQUANT ÉTAIT ICI
+
     private LocalDate eligibleFrom;
 
     private String label;

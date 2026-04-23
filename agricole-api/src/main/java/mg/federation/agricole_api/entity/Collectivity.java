@@ -6,7 +6,7 @@ import java.util.List;
 
 @Entity @Data
 public class Collectivity {
-    @Id @GeneratedValue(strategy = GenerationType.UUID)
+    @Id
     private String id;
     private String location;
     @OneToOne(cascade = CascadeType.ALL)
