@@ -8,4 +8,5 @@ import java.util.List;
 public interface CollectivityTransactionRepository extends JpaRepository<CollectivityTransaction, String> {
     List<CollectivityTransaction> findByAccountCreditedIdInAndCreationDateBetween(
         List<String> accountIds, LocalDate from, LocalDate to);
+    List<CollectivityTransaction> findByAccountCreditedIdAndCreationDateAfter(String accountId, LocalDate date);    
 }

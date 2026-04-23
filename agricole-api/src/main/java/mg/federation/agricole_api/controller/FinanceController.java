@@ -18,6 +18,22 @@ public class FinanceController {
 
     private final FinancialService financialService;
 
+    
+    @GetMapping("/collectivities/{id}")
+    public Collectivity getCollectivity(@PathVariable String id) {
+        return financialService.getCollectivity(id);
+    }
+
+    
+    @GetMapping("/collectivities/{id}/financialAccounts")
+    public List<FinancialAccount> getAccounts(
+            @PathVariable String id,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate at) {
+        
+        LocalDate dateLimit = (at != null) ? at : LocalDate.now();
+        return financialService.getAccountsAtDate(id, dateLimit);
+    }
+
     @GetMapping("/collectivities/{id}/membershipFees")
     public List<MembershipFee> getMembershipFees(@PathVariable String id) {
         return financialService.getFeesByCollectivity(id);

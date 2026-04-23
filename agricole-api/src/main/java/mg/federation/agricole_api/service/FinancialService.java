@@ -26,17 +26,41 @@ public class FinancialService {
     private final MemberPaymentRepository paymentRepo;
     private final MembershipFeeRepository feeRepo;
 
+    
+    public Collectivity getCollectivity(String id) {
+        return collectivityRepo.findById(id)
+                .orElseThrow(() -> new NotFoundException("Collectivité introuvable"));
+    }
+
+    
+    public List<FinancialAccount> getAccountsAtDate(String collectivityId, LocalDate at) {
+        List<FinancialAccount> accounts = accountRepo.findByCollectivityId(collectivityId);
+        
+        for (FinancialAccount account : accounts) {
+            
+            List<CollectivityTransaction> futureTxs = transactionRepo
+                    .findByAccountCreditedIdAndCreationDateAfter(account.getId(), at);
+            
+            
+            Double sumToSubtract = futureTxs.stream()
+                    .mapToDouble(CollectivityTransaction::getAmount)
+                    .sum();
+            
+            account.setAmount(account.getAmount() - sumToSubtract);
+        }
+        return accounts;
+    }
+
     @Transactional
     public MemberPayment processPayment(String memberId, CreateMemberPaymentDTO dto) {
         Member member = memberRepo.findById(memberId)
                 .orElseThrow(() -> new NotFoundException("Membre introuvable"));
-
         FinancialAccount account = accountRepo.findById(dto.getAccountCreditedIdentifier())
-                .orElseThrow(() -> new NotFoundException("Compte financier introuvable"));
+                .orElseThrow(() -> new NotFoundException("Compte introuvable"));
 
-        if (dto.getAmount() <= 0) throw new BadRequestException("Le montant doit être positif");
+        if (dto.getAmount() <= 0) throw new BadRequestException("Montant invalide");
 
-        // Historique Transaction
+        
         CollectivityTransaction tx = new CollectivityTransaction();
         tx.setId(UUID.randomUUID().toString());
         tx.setAmount(dto.getAmount());
@@ -46,11 +70,10 @@ public class FinancialService {
         tx.setCreationDate(LocalDate.now());
         transactionRepo.save(tx);
 
-        // Mise à jour Solde
+        
         account.setAmount(account.getAmount() + dto.getAmount());
         accountRepo.save(account);
 
-        // Paiement Membre
         MemberPayment payment = new MemberPayment();
         payment.setId(UUID.randomUUID().toString());
         payment.setAmount(dto.getAmount());
@@ -58,15 +81,13 @@ public class FinancialService {
         payment.setAccountCredited(account);
         payment.setCreationDate(LocalDate.now());
         payment.setMember(member);
-
         return paymentRepo.save(payment);
     }
 
     @Transactional
-    public List<MembershipFee> createFees(String collectivityId, List<CreateMembershipFeeDTO> dtos) {
-        Collectivity col = collectivityRepo.findById(collectivityId)
+    public List<MembershipFee> createFees(String colId, List<CreateMembershipFeeDTO> dtos) {
+        Collectivity col = collectivityRepo.findById(colId)
                 .orElseThrow(() -> new NotFoundException("Collectivité introuvable"));
-
         return dtos.stream().map(dto -> {
             MembershipFee fee = new MembershipFee();
             fee.setId(UUID.randomUUID().toString());
@@ -86,8 +107,6 @@ public class FinancialService {
 
     public List<CollectivityTransaction> findTransactions(String id, LocalDate from, LocalDate to) {
         List<FinancialAccount> accounts = accountRepo.findByCollectivityId(id);
-        if (accounts.isEmpty()) throw new NotFoundException("Aucun compte trouvé");
-
         List<String> ids = accounts.stream().map(FinancialAccount::getId).toList();
         return transactionRepo.findByAccountCreditedIdInAndCreationDateBetween(ids, from, to);
     }
