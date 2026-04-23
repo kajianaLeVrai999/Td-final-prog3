@@ -6,9 +6,9 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface CollectivityRepository extends JpaRepository<Collectivity, String> {
+    boolean existsByName(String name);
+    boolean existsByNumber(Integer number); // Changé en Integer
     
     
     boolean existsByIdAndMembersId(String collectivityId, String memberId);
-    boolean existsByName(String name);
-    boolean existsByNumber(String number);
 }

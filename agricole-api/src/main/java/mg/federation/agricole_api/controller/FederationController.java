@@ -46,6 +46,6 @@ public class FederationController {
     @Data
     public static class IdentificationRequest {
         private String name;
-        private String number;
+        private Integer number;
     }
 }

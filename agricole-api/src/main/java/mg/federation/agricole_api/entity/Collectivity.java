@@ -16,5 +16,5 @@ public class Collectivity {
     @Column(unique = true)
     private String name;
     @Column(unique = true)
-    private String number;
+    private Integer number;
 }
