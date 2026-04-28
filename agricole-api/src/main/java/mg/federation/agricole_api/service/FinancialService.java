@@ -34,7 +34,7 @@ public class FinancialService {
 
     
     public List<FinancialAccount> getAccountsAtDate(String collectivityId, LocalDate at) {
-        List<FinancialAccount> accounts = accountRepo.findByCollectivityId(collectivityId);
+        List<FinancialAccount> accounts = accountRepo.findByCollectivity_Id(collectivityId);
         
         for (FinancialAccount account : accounts) {
             
@@ -106,7 +106,7 @@ public class FinancialService {
     }
 
     public List<CollectivityTransaction> findTransactions(String id, LocalDate from, LocalDate to) {
-        List<FinancialAccount> accounts = accountRepo.findByCollectivityId(id);
+        List<FinancialAccount> accounts = accountRepo.findByCollectivity_Id(id);
         List<String> ids = accounts.stream().map(FinancialAccount::getId).toList();
         return transactionRepo.findByAccountCreditedIdInAndCreationDateBetween(ids, from, to);
     }

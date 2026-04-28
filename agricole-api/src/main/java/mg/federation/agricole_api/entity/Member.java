@@ -26,4 +26,7 @@ public class Member {
     private MemberOccupation occupation;
     @ManyToMany
     private List<Member> referees;
+    @ManyToOne
+    @JoinColumn(name = "collectivity_id")
+    private Collectivity collectivity;
 }

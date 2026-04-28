@@ -5,5 +5,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface FinancialAccountRepository extends JpaRepository<FinancialAccount, String> {
-    List<FinancialAccount> findByCollectivityId(String collectivityId);
+    List<FinancialAccount> findByCollectivity_Id(String collectivityId);
 }

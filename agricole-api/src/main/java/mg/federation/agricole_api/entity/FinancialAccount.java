@@ -11,4 +11,8 @@ public abstract class FinancialAccount {
     @Id
     private String id;
     private Double amount;
+    
+    @ManyToOne
+    @JoinColumn(name = "collectivity_id")
+    private Collectivity collectivity;
 }

@@ -1,12 +1,10 @@
 package mg.federation.agricole_api.controller;
 
 import lombok.RequiredArgsConstructor;
-import mg.federation.agricole_api.dto.CreateMemberPaymentDTO;
 import mg.federation.agricole_api.dto.CreateMembershipFeeDTO;
 import mg.federation.agricole_api.entity.*;
 import mg.federation.agricole_api.service.FinancialService;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -54,13 +52,4 @@ public class FinanceController {
         return financialService.findTransactions(id, from, to);
     }
 
-    @PostMapping("/members/{id}/payments")
-    @ResponseStatus(HttpStatus.CREATED)
-    public List<MemberPayment> createMemberPayments(
-            @PathVariable String id,
-            @RequestBody List<CreateMemberPaymentDTO> dtos) {
-        return dtos.stream()
-                .map(dto -> financialService.processPayment(id, dto))
-                .toList();
-    }
 }
