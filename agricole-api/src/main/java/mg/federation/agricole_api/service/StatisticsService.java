@@ -29,7 +29,6 @@ public class StatisticsService {
     private final MemberPaymentRepository paymentRepository;
     private final MembershipFeeRepository feeRepository;
     private final ActivityService activityService;
-S
     private double calculateExpected(
             String collectivityId,
             LocalDate from,
