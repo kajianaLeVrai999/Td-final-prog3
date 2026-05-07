@@ -1,15 +1,15 @@
 package mg.federation.agricole_api.repository;
 
 import mg.federation.agricole_api.entity.MemberPayment;
+import org.springframework.data.jpa.repository.JpaRepository;
 import java.time.LocalDate;
 import java.util.List;
-import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface MemberPaymentRepository extends JpaRepository<MemberPayment, String> {
     
-    List<MemberPayment> findByMemberIdAndCreationDateBetween(
-            String memberId,
-            LocalDate from,
-            LocalDate to
-    );
+    
+    boolean existsByMemberIdAndMembershipFeeIdAndPaymentDateBetween(String memberId, String feeId, LocalDate start, LocalDate end);
+
+    
+    List<MemberPayment> findAllByMemberIdAndPaymentDateBetween(String memberId, LocalDate start, LocalDate end);
 }

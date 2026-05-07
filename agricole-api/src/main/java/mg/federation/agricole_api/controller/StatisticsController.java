@@ -1,34 +1,24 @@
 package mg.federation.agricole_api.controller;
 
-import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
+import mg.federation.agricole_api.dto.CollectivityOverallStatisticsDTO;
+import mg.federation.agricole_api.service.StatisticsService;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.*;
+
 import java.time.LocalDate;
 import java.util.List;
-import mg.federation.agricole_api.service.StatisticsService;
-import mg.federation.agricole_api.dto.CollectivityLocalStatisticsDTO;
-import mg.federation.agricole_api.dto.CollectivityOverallStatisticsDTO;
 
 @RestController
-@RequestMapping("/collectivities")
 @RequiredArgsConstructor
 public class StatisticsController {
 
-    private final StatisticsService service;
+    private final StatisticsService statisticsService;
 
-    @GetMapping("/{id}/statistics")
-    public List<CollectivityLocalStatisticsDTO> getLocal(
-            @PathVariable String id,
-            @RequestParam LocalDate from,
-            @RequestParam LocalDate to
-    ) {
-        return service.getLocalStats(id, from, to);
-    }
-
-    @GetMapping("/statistics")
-    public List<CollectivityOverallStatisticsDTO> getGlobal(
-            @RequestParam LocalDate from,
-            @RequestParam LocalDate to
-    ) {
-        return service.getGlobalStats(from, to);
+    @GetMapping("/collectivites/statistics") 
+    public List<CollectivityOverallStatisticsDTO> getGlobalStats(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        return statisticsService.getOverallStatistics(from, to);
     }
 }

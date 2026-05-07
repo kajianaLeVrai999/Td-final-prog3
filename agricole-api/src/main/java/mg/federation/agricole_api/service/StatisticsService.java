@@ -1,237 +1,114 @@
 package mg.federation.agricole_api.service;
 
 import lombok.RequiredArgsConstructor;
-import mg.federation.agricole_api.dto.CollectivityInformation;
 import mg.federation.agricole_api.dto.CollectivityLocalStatisticsDTO;
 import mg.federation.agricole_api.dto.CollectivityOverallStatisticsDTO;
-import mg.federation.agricole_api.dto.MemberDescription;
+import mg.federation.agricole_api.dto.MemberFinancialStatusDTO;
 import mg.federation.agricole_api.entity.Collectivity;
 import mg.federation.agricole_api.entity.Member;
-import mg.federation.agricole_api.entity.MemberPayment;
 import mg.federation.agricole_api.entity.MembershipFee;
 import mg.federation.agricole_api.entity.enumeration.Enumerations.ActivityStatus;
-import mg.federation.agricole_api.repository.CollectivityRepository;
-import mg.federation.agricole_api.repository.MemberPaymentRepository;
-import mg.federation.agricole_api.repository.MemberRepository;
-import mg.federation.agricole_api.repository.MembershipFeeRepository;
+import mg.federation.agricole_api.repository.*;
+
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class StatisticsService {
 
-    private final MemberRepository memberRepository;
     private final CollectivityRepository collectivityRepository;
-    private final MemberPaymentRepository paymentRepository;
-    private final MembershipFeeRepository feeRepository;
-    private final ActivityService activityService;
-    private double calculateExpected(
-            String collectivityId,
-            LocalDate from,
-            LocalDate to
-    ) {
+    private final MemberRepository memberRepository;
+    private final MembershipFeeRepository membershipFeeRepository;
+    private final MemberPaymentRepository memberPaymentRepository;
 
-        List<MembershipFee> fees =
-                feeRepository.findByCollectivityIdAndStatus(
-                        collectivityId,
-                        ActivityStatus.ACTIVE
-                );
+    public List<CollectivityOverallStatisticsDTO> getOverallStatistics(LocalDate from, LocalDate to) {
+        return collectivityRepository.findAll().stream().map(col -> {
+            
+            
+            int newMembers = memberRepository.countByCollectivityIdAndCreatedAtBetween(col.getId(), from, to);
+            
+            
+            List<Member> members = memberRepository.findByCollectivityId(col.getId());
+            
+            
+            List<MembershipFee> activeFees = membershipFeeRepository.findByCollectivityIdAndStatus(col.getId(), ActivityStatus.ACTIVE);
 
-        double total = 0;
-
-        for (MembershipFee fee : fees) {
-
-            switch (fee.getFrequency()) {
-
-                case WEEKLY ->
-                        total += ChronoUnit.WEEKS.between(from, to)
-                                * fee.getAmount();
-
-                case MONTHLY ->
-                        total += ChronoUnit.MONTHS.between(from, to)
-                                * fee.getAmount();
-
-                case ANNUALLY ->
-                        total += ChronoUnit.YEARS.between(from, to)
-                                * fee.getAmount();
-
-                case PUNCTUALLY ->
-                        total += fee.getAmount();
+            long upToDateCount = 0;
+            if (!members.isEmpty()) {
+                upToDateCount = members.stream()
+                    .filter(m -> isMemberUpToDate(m, activeFees, from, to))
+                    .count();
             }
-        }
 
-        return total;
+            double percentage = members.isEmpty() ? 100.0 : (double) upToDateCount / members.size() * 100.0;
+
+            return new CollectivityOverallStatisticsDTO(
+                col.getName(),
+                col.getNumber(),
+                newMembers,
+                Math.round(percentage * 100.0) / 100.0
+            );
+        }).collect(Collectors.toList());
     }
 
+    private boolean isMemberUpToDate(Member member, List<MembershipFee> activeFees, LocalDate from, LocalDate to) {
+        if (activeFees.isEmpty()) return true;
+        for (MembershipFee fee : activeFees) {
+            boolean paid = memberPaymentRepository.existsByMemberIdAndMembershipFeeIdAndPaymentDateBetween(
+                member.getId(), fee.getId(), from, to);
+            if (!paid) return false;
+        }
+        return true;
+    }
     
 
-    public List<CollectivityLocalStatisticsDTO> getLocalStats(
-            String collectivityId,
-            LocalDate from,
-            LocalDate to
-    ) {
+    public CollectivityLocalStatisticsDTO getLocalStatistics(String collectivityId, LocalDate from, LocalDate to) {
+    Collectivity col = collectivityRepository.findById(collectivityId)
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-        List<Member> members =
-                memberRepository.findByCollectivityId(collectivityId);
+    List<Member> members = memberRepository.findByCollectivityId(collectivityId);
+    
+    
+    List<MembershipFee> activeFees = membershipFeeRepository.findByCollectivityIdAndStatus(collectivityId, ActivityStatus.ACTIVE);
 
-        return members.stream().map(member -> {
+    List<MemberFinancialStatusDTO> memberStats = members.stream().map(member -> {
+        
+        double totalPaid = calculateTotalPaid(member.getId(), from, to);
 
-            double paid = paymentRepository
-                    .findByMemberIdAndCreationDateBetween(
-                            member.getId(),
-                            from,
-                            to
-                    )
-                    .stream()
-                    .mapToDouble(MemberPayment::getAmount)
-                    .sum();
+        
+        double potentialUnpaid = calculatePotentialUnpaid(member.getId(), activeFees, from, to);
 
-            double expected =
-                    calculateExpected(
-                            collectivityId,
-                            from,
-                            to
-                    );
+        String fullName = member.getFirstName() + " " + member.getLastName();
+        return new MemberFinancialStatusDTO(fullName, totalPaid, potentialUnpaid);
+    }).collect(Collectors.toList());
 
-            CollectivityLocalStatisticsDTO dto =
-                    new CollectivityLocalStatisticsDTO();
+    return new CollectivityLocalStatisticsDTO(col.getName(), memberStats);
+}
 
-            dto.setMemberDescription(
-                    mapToDescription(member)
-            );
+private double calculateTotalPaid(String memberId, LocalDate from, LocalDate to) {
+    
+    return memberPaymentRepository.findAllByMemberIdAndPaymentDateBetween(memberId, from, to)
+            .stream()
+            .mapToDouble(payment -> payment.getAmount()) 
+            .sum();
+}
 
-            dto.setEarnedAmount(paid);
-
-            dto.setUnpaidAmount(
-                    Math.max(0, expected - paid)
-            );
-
-            dto.setAttendanceRate(
-                    activityService.calculateAttendanceRate(
-                            member.getId(),
-                            collectivityId
-                    )
-            );
-
-            return dto;
-
-        }).toList();
+private double calculatePotentialUnpaid(String memberId, List<MembershipFee> activeFees, LocalDate from, LocalDate to) {
+    double unpaid = 0.0;
+    for (MembershipFee fee : activeFees) {
+        boolean isPaid = memberPaymentRepository.existsByMemberIdAndMembershipFeeIdAndPaymentDateBetween(
+                memberId, fee.getId(), from, to);
+        
+        if (!isPaid) {
+            unpaid += fee.getAmount(); // On ajoute le montant de la cotisation active non payée
+        }
     }
-
-    public List<CollectivityOverallStatisticsDTO> getGlobalStats(
-            LocalDate from,
-            LocalDate to
-    ) {
-
-        return collectivityRepository.findAll()
-                .stream()
-                .map(collectivity -> {
-
-                    List<Member> members =
-                            memberRepository.findByCollectivityId(
-                                    collectivity.getId()
-                            );
-
-                    long upToDateMembers =
-                            members.stream()
-                                    .filter(member ->
-                                            isUpToDate(
-                                                    member,
-                                                    collectivity.getId(),
-                                                    from,
-                                                    to
-                                            )
-                                    )
-                                    .count();
-
-                    int newMembers =
-                            (int) members.stream()
-                                    .filter(member ->
-                                            member.getCreationDate() != null
-                                                    && !member.getCreationDate().isBefore(from)
-                                                    && !member.getCreationDate().isAfter(to)
-                                    )
-                                    .count();
-
-                    CollectivityOverallStatisticsDTO dto =
-                            new CollectivityOverallStatisticsDTO();
-
-                    dto.setCollectivityInformation(
-                            mapToInfo(collectivity)
-                    );
-
-                    dto.setNewMembersNumber(newMembers);
-
-                    dto.setOverallMemberCurrentDuePercentage(
-                            members.isEmpty()
-                                    ? 0
-                                    : (upToDateMembers * 100.0 / members.size())
-                    );
-
-                    dto.setGlobalAttendanceRate(
-                            activityService.calculateGlobalAttendanceRate(
-                                    collectivity.getId()
-                            )
-                    );
-
-                    return dto;
-
-                }).toList();
-    }
-
-    private boolean isUpToDate(
-            Member member,
-            String collectivityId,
-            LocalDate from,
-            LocalDate to
-    ) {
-
-        double paid = paymentRepository
-                .findByMemberIdAndCreationDateBetween(
-                        member.getId(),
-                        from,
-                        to
-                )
-                .stream()
-                .mapToDouble(MemberPayment::getAmount)
-                .sum();
-
-        double expected =
-                calculateExpected(
-                        collectivityId,
-                        from,
-                        to
-                );
-
-        return paid >= expected;
-    }
-
-    private MemberDescription mapToDescription(Member member) {
-
-        return MemberDescription.builder()
-                .id(member.getId())
-                .firstName(member.getFirstName())
-                .lastName(member.getLastName())
-                .email(member.getEmail())
-                .occupation(
-                        member.getOccupation() != null
-                                ? member.getOccupation().name()
-                                : null
-                )
-                .build();
-    }
-
-    private CollectivityInformation mapToInfo(
-            Collectivity collectivity
-    ) {
-
-        return CollectivityInformation.builder()
-                .name(collectivity.getName())
-                .number(collectivity.getNumber())
-                .build();
-    }
+    return unpaid;
+}
 }

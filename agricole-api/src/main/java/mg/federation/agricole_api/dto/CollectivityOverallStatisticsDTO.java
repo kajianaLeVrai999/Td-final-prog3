@@ -1,13 +1,8 @@
 package mg.federation.agricole_api.dto;
 
-import lombok.Data;
-
-@Data
-public class CollectivityOverallStatisticsDTO {
-
-    private CollectivityInformation collectivityInformation;
-    private int newMembersNumber;
-    private double overallMemberCurrentDuePercentage;
-
-    private double globalAttendanceRate;
-}
+public record CollectivityOverallStatisticsDTO(
+    String name,
+    Integer number,
+    Integer newMembersNumber,
+    Double overallMemberCurrentDuePercentage
+) {}
