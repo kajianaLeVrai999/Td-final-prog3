@@ -1,13 +1,8 @@
 package mg.federation.agricole_api.dto;
 
-import lombok.Data;
+import java.util.List;
 
-@Data
-public class CollectivityLocalStatisticsDTO {
-
-    private MemberDescription memberDescription;
-    private double earnedAmount;
-    private double unpaidAmount;
-
-    private double attendanceRate;
-}
+public record CollectivityLocalStatisticsDTO(
+    String collectivityName,
+    List<MemberFinancialStatusDTO> memberStats
+) {}

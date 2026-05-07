@@ -24,6 +24,7 @@ public class ActivityService {
     private final CollectivityRepository collectivityRepository;
     private final MemberRepository memberRepository;
 
+    
     @Transactional
     public List<Activity> createActivities(String collectivityId, List<CreateCollectivityActivityDTO> dtos) {
         Collectivity collectivity = collectivityRepository.findById(collectivityId)
@@ -33,61 +34,23 @@ public class ActivityService {
             Activity activity = new Activity();
             activity.setId(UUID.randomUUID().toString());
             activity.setLabel(dto.label());
+            activity.setActivityType(ActivityType.valueOf(dto.activityType().toUpperCase()));
             
-            
-            try {
-                activity.setActivityType(ActivityType.valueOf(dto.activityType().toUpperCase()));
-            } catch (Exception e) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Type d'activité invalide");
-            }
-
-            
-            List<MemberOccupation> occupations = dto.memberOccupationConcerned().stream()
+            activity.setMemberOccupationConcerned(dto.memberOccupationConcerned().stream()
                     .map(occ -> MemberOccupation.valueOf(occ.toUpperCase()))
-                    .collect(Collectors.toList());
-            activity.setMemberOccupationConcerned(occupations);
+                    .collect(Collectors.toList()));
 
             activity.setExecutiveDate(dto.executiveDate());
-            
             if (dto.recurrenceRule() != null) {
                 activity.setWeekOrdinal(dto.recurrenceRule().weekOrdinal());
                 activity.setDayOfWeek(dto.recurrenceRule().dayOfWeek());
             }
-            
             activity.setCollectivity(collectivity);
             return activityRepository.save(activity);
         }).collect(Collectors.toList());
     }
 
-    @Transactional
-    public List<ActivityMemberAttendanceDTO> confirmAttendance(String activityId, List<CreateActivityMemberAttendanceDTO> dtos) {
-        activityRepository.findById(activityId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Activity not found"));
-
-        return dtos.stream().map(dto -> {
-            Optional<Attendance> existing = attendanceRepository.findByActivityIdAndMemberId(activityId, dto.memberIdentifier());
-            
-            Attendance attendance;
-            if (existing.isPresent()) {
-                attendance = existing.get();
-                if (attendance.getStatus() != AttendanceStatus.UNDEFINED) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Status déjà confirmé");
-                }
-            } else {
-                attendance = new Attendance();
-                attendance.setId(UUID.randomUUID().toString());
-                attendance.setActivityId(activityId);
-                attendance.setMemberId(dto.memberIdentifier());
-            }
-
-            // CONVERSION ENUM POUR ATTENDANCE STATUS
-            attendance.setStatus(AttendanceStatus.valueOf(dto.attendanceStatus().toUpperCase()));
-            
-            Attendance saved = attendanceRepository.save(attendance);
-            return convertToAttendanceDTO(saved);
-        }).collect(Collectors.toList());
-    }
-
+    
     public List<ActivityMemberAttendanceDTO> getFullAttendanceList(String activityId) {
         Activity activity = activityRepository.findById(activityId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Activity not found"));
@@ -103,6 +66,7 @@ public class ActivityService {
             if (attendanceMap.containsKey(member.getId())) {
                 result.add(convertToAttendanceDTO(attendanceMap.get(member.getId())));
             } else if (activity.getMemberOccupationConcerned().contains(member.getOccupation())) {
+                // Par défaut, si concerné mais pas pointé : UNDEFINED
                 result.add(new ActivityMemberAttendanceDTO(
                     null,
                     convertToDescriptionDTO(member),
@@ -110,42 +74,46 @@ public class ActivityService {
                 ));
             }
         }
-        
-        for (Attendance att : savedAttendances) {
-            if (members.stream().noneMatch(m -> m.getId().equals(att.getMemberId()))) {
-                result.add(convertToAttendanceDTO(att));
-            }
-        }
         return result;
     }
 
+    
+    @Transactional
+    public List<ActivityMemberAttendanceDTO> confirmAttendance(String activityId, List<CreateActivityMemberAttendanceDTO> dtos) {
+        return dtos.stream().map(dto -> {
+            Attendance attendance = attendanceRepository.findByActivityIdAndMemberId(activityId, dto.memberIdentifier())
+                    .orElseGet(() -> {
+                        Attendance newAtt = new Attendance();
+                        newAtt.setId(UUID.randomUUID().toString());
+                        newAtt.setActivityId(activityId);
+                        newAtt.setMemberId(dto.memberIdentifier());
+                        newAtt.setStatus(AttendanceStatus.UNDEFINED);
+                        return newAtt;
+                    });
+
+            // Bonus 1 : Verrouillage si déjà pointé
+            if (attendance.getStatus() != AttendanceStatus.UNDEFINED) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Status already set");
+            }
+
+            attendance.setStatus(AttendanceStatus.valueOf(dto.attendanceStatus().toUpperCase()));
+            return convertToAttendanceDTO(attendanceRepository.save(attendance));
+        }).collect(Collectors.toList());
+    }
+
     private ActivityMemberAttendanceDTO convertToAttendanceDTO(Attendance attendance) {
-        Member member = memberRepository.findById(attendance.getMemberId()).orElse(null);
+        Member m = memberRepository.findById(attendance.getMemberId()).orElse(null);
         return new ActivityMemberAttendanceDTO(
                 attendance.getId(),
-                convertToDescriptionDTO(member),
+                convertToDescriptionDTO(m),
                 attendance.getStatus()
         );
     }
 
-    private MemberDescriptionDTO convertToDescriptionDTO(Member member) {
-        if (member == null) return null;
+    private MemberDescriptionDTO convertToDescriptionDTO(Member m) {
+        if (m == null) return null;
         return new MemberDescriptionDTO(
-                member.getId(),
-                member.getFirstName(),
-                member.getLastName(),
-                member.getEmail(),
-                member.getOccupation().name() 
+                m.getId(), m.getFirstName(), m.getLastName(), m.getEmail(), m.getOccupation().name()
         );
-    }
-
-    public double calculateGlobalAttendanceRate(String id) {
-        
-        throw new UnsupportedOperationException("Unimplemented method 'calculateGlobalAttendanceRate'");
-    }
-
-    public double calculateAttendanceRate(String id, String collectivityId) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'calculateAttendanceRate'");
     }
 }

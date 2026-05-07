@@ -15,7 +15,7 @@ public class Activity {
     private String label;
 
     @Enumerated(EnumType.STRING)
-    private ActivityType activityType; // Changé de String en Enum
+    private ActivityType activityType;
 
     @ElementCollection
     @Enumerated(EnumType.STRING)
