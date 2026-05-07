@@ -2,11 +2,6 @@ package mg.federation.agricole_api.entity.enumeration;
 
 public class Enumerations {
 
-    public enum PaymentMode {
-        CASH,
-        MOBILE_MONEY,
-        BANK_TRANSFER
-    }
 
     public enum Frequency {
         WEEKLY,
@@ -56,4 +51,18 @@ public class Enumerations {
         PISCICULTURE,
         APICULTURE
     }
+    
+    public enum AttendanceStatus {
+    MISSING, ATTENDED, UNDEFINED
+    }
+
+    
+    public enum PaymentMode {
+    CASH, MOBILE_BANKING, BANK_TRANSFER
+    }
+
+
+public enum ActivityType {
+    MEETING, TRAINING, OTHER
+}
 }

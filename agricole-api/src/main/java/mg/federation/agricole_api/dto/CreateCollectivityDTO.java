@@ -6,7 +6,7 @@ import java.util.List;
 @Data
 public class CreateCollectivityDTO {
     private String location;
-    private List<String> members; // Liste d'IDs
+    private List<String> members;
     private Boolean federationApproval;
     private CreateCollectivityStructureDTO structure;
 }

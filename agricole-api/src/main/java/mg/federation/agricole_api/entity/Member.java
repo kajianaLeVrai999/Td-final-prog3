@@ -20,11 +20,17 @@ public class Member {
     private Gender gender;
     private String address;
     private String profession;
-    private Integer phoneNumber;
+    private String phoneNumber;
     private String email;
+    private LocalDate creationDate = LocalDate.now();
     @Enumerated(EnumType.STRING)
     private MemberOccupation occupation;
     @ManyToMany
+    @JoinTable(
+    name = "member_referees",
+    joinColumns = @JoinColumn(name = "member_id"),
+    inverseJoinColumns = @JoinColumn(name = "referee_id")
+    )
     private List<Member> referees;
     @ManyToOne
     @JoinColumn(name = "collectivity_id")

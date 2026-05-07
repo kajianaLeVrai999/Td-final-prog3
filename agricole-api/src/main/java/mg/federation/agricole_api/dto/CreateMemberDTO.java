@@ -14,7 +14,7 @@ public class CreateMemberDTO {
     private Gender gender;
     private String address;
     private String profession;
-    private Integer phoneNumber;
+    private String phoneNumber;
     private String email;
     private MemberOccupation occupation;
     private String collectivityIdentifier;
